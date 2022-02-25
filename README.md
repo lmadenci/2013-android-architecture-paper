@@ -1,20 +1,15 @@
-####Written by Gabriel Leake & Lena Madenci
-Android Architecture & Boot Process
+#### Written by Lena Madenci & Gabriel Leake 
+Android Architecture & Boot Process (2013)
 =============================
 
 
 
-##Introduction
+## Introduction
 
 Android OS has become the dominant platform in mobile computing, overtaking Apple's iOS.  There is an ever increasing need for functional applications in this system.  The motivation behind this survey was to gain an understanding of how the operating system was structured, how the boot process worked, and how applications were organized.  
 
-##Android Software Stack
+## Android Software Stack
 The Android software stack is composed of 4 different layers: the Application Layer, Application Framework Layer, Android Runtime Layer, and Libraries. These layers are built on top of a Linux 2.6.4 kernel. 
-
-
-
-
-![alt text](http://www.ecnmag.com/sites/ecnmag.com/files/legacyimages/ECN/Articles/2011/07/ec1109es101_Fig%201%20copy.jpg)
 
 The kernel contains the processes, memory and file system management for its operating system.
 
@@ -28,17 +23,9 @@ This is where the Dalvik Virtual Machine performs. By using services from the ke
 *__Application Layer:__* The AMS livesi n the Application layer and manages the core components of Android applications: activities, services, content providers, and broadcast receivers.  
 
 
-##Booting and Forking a Process
+## Booting and Forking a Process
 
 The Zygote process starts at boot time and initializes a Dalvik Virtual Machine. This original Zygote is the process that is the first step in every Android process because each following process is a Zygote fork. The original Zygote listens for spawn requests from the Zygote socket [google code wiki]. Without forking the Zygote process, the sandboxing of DVMs in Android would not be effective; cold starting VMs would take too much time for so many different Vms, which is why the Zygote pre-initializes classes that every app will need. 
-
-An outline of the boot process of Android can be depicted as the following - 
-
-
-![alt text](http://feb.imghost.us/EOvq.png)
-
-
-The previous graph, from [2], displays the boot process in Android.
 
 In order to boot up, the Android operating system works from its kernel and up through out the Android Layers. First, when the device is powered on, boot ROM code will begin execution and load the Bootloader onto physical memory (RAM) and then executed [2].  ROM stands for Read Only Memory and basically this memory exists inside the cpu, which makes sense this this is one of the first things the cpu will execute when it powers on. “The boot loader is a special program seperate from the Linux kernel that is used to set up initial memories and load kernel to RAM” [1].  This would be akin to GRUB or uBoot on Linux desktop systems.  
 
@@ -47,28 +34,13 @@ Then, it loads the Linux kernel and starts the init process. Init runs and parse
 From the source code: https://github.com/android/platform_frameworks_base/blob/master/services/java/com/android/server/SystemServer.java 
 
 
-We can see for ourselves that the SystemServer starts critical processes and services that the Window Manager will need in the run() method: 
-
-
-![alt text](http://feb.imghost.us/EOyN.png)
+The SystemServer starts critical processes and services that the Window Manager will need in the run() method.
 
 These are the services that the SystemServer can instantiate.  Some key ones to note – power manager, activity manager, and window manager.  In addition, if the OS is starting in safe mode, the System Manager will run logic to detect it and then set flags on the Zygote and tell te Activity Manager to enter safe mode:
 
-
-![alt text](http://feb.imghost.us/EOxt.png)
-
-
-When the Zygote process starts up, it instantiates a Dalvik virtual machine (in the Android Runtime Layer), loads libraries, and starts listening to the Zygote socket. Once the Zygote process starts, its runs in loop mode continually. We can see this in the ZygoteInit code:
-
-
-![alt text](http://feb.imghost.us/EOysz.png)
+When the Zygote process starts up, it instantiates a Dalvik virtual machine (in the Android Runtime Layer), loads libraries, and starts listening to the Zygote socket. Once the Zygote process starts, its runs in loop mode continually.
  
 The Zygote will run in select loop mode.  A single process will spin and wait for communication to start subsequent applications [4].  We can see that in this while (true) method, the process will continually loop and keep track of how many times it has looped.  The code creates a new file descriptor array and then attempts to read from it.  The server socket contains a file descriptor that is added to the array.  According to [4], new connections are put into array “peers” and the spawn command that gets received over the network is executed by calling the runOnce() method on ZygoteConnection.java.  
-
-In ZygoteInit, further down the while(true) method we have, 
-
-
-![alt text](http://feb.imghost.us/EP0C.png)
 
 Each peer is a ZygoteConneciton instantiation so the runOnce() method will be called in ZygoteConnection.java. In this method, this line of code will eventually be run which will call into the native fork function and return the pid of the new process:
 
@@ -80,7 +52,7 @@ Zygote is the resulting process from init running app_process doing runtime.star
 
 The Dalvik VM uses a register based architecture which means that it uses processor registers, storage that is part of the processor and can be accessed quickly.  These are at the top of the memory hierarchy since they are the fastest way to access data.  Each register holds a single positive integer.  All the Java files that Android uses are converted to .dex format (similar to a jar file, just an archive) using a tool that is part of Dalvik, called dx (5).  The Dalvik VM converts Java bytecode into alternative instructions that the Dalvik VM can understand and use.  The Dalvik VM is optimized to run in a low memory ad resouce constrained environment, which is typical in mobile computing.  How it differs from JVM is that it is not stack based, it uses less space, the interpreter is simplified as it only uses 32-bit.  Dalvik found a way to increase its instruction speed by using a 16 bit instruction set that works on local variables directly, as opposed to executing 8 bit stack instructions.  It was designed to be able to efficiently be instantiated multiple times on a single device. The Dalvik Virtual Machine is what houses application processes that run, each exist inside their own Dalvik VM.  
 
-##Android Application Components
+## Android Application Components
 
 The components of an Android application are described below:
 
@@ -96,7 +68,7 @@ The above components of an application use intents to interact. An Intent is “
 
 To further elaborate on intents, an intent will bind individual components to one another at runtime and is an object which houses data to be passed between processes. It contains an abstract description of what action is intended to be performed.  The intent object will be passed into Context.startActivity() if an activity should be started.  
 
-##Binders
+## Binders
 
 Linux has multiple inter process communication mechanisms.  As previously mentioned, the Android OS is built on top of Linux and as such has access to using signals, pipes, sockets, semaphores, queuing, and shared memory.  However,  Android has implemented a driver called Binder, which is a reimplementation of OpenBinder, developed by Palm. Inc. [1]. 
 
@@ -104,24 +76,13 @@ The binder implementation file is a C file and is in drivers/misc/binder.c with 
 
 According to Brian Swetlad, a Senior Software Engineer at Google, the reason the binder was implemented at the kernel level and the reason the existing IPC mechanisms outlined above is because there are certain properties of the binder that are not available using existing IPC.  One of these properties is that the binder avoids copies as it has the kernel copy from the writer into a ring buffer directly inside the reader's address space and will allocate space is necessary.  The second reason is that the binder can manage the lifespan of proxied remote userspace objects, which can be passed or shared among processes [2]. 
 
-In addition to this the Binder framework provides direct and indirect facilities, as shown below [3]:
-
-
-![alt text](http://feb.imghost.us/EP2p.png)
-
-
-As the above graph shows – direct facilities include managing, identifying and making calls.  Indirect facilities include using the binder as a token (the binder is unique so it can be used as such) and sending fd of a shared memory.  
+Direct facilities include managing, identifying and making calls.  Indirect facilities include using the binder as a token (the binder is unique so it can be used as such) and sending fd of a shared memory.  
 
 From the application perspective, remote object methods can be called as if they were local object methods [3] by using a synchronous system call.  The downside of this is that the calling process will be blocked until a reply is received but the advantage is, “the client has no need to provide a thread method for a asynchronous return message from the client” [3].  The binder facility has the ability to start and stop threads using one and two way messages.  
 
 The system service makes use of the link to death mechanism which is a direct binder facility for notification purposes.  It allows the process to become informed when a specific implementation of a binder interface, linked to a specific process, is terminated.  This is an important feature because the window manager in Android needs to be notified when a window is closed.  Each window has a Binder interface linked to it and a callback for that interface.  The window manager creates a link to death relationship to that callback and thus can be informed when the window closes and react accordingly [3].
   
 One of the other interesting things from [3] is that each implementation of the binder is uniquely identifiable.  As such, it can be used as a shared token between processes (so long as the Binder is not published by the service manager), it will only be known between the processes sharing it, so it can be used for security among processes as an access token.
-
-
-![alt text](http://feb.imghost.us/EP3V.png)
-
-(Image source: http://vineetgupta.com/blog/mobile-platforms-part-1-android) 
 
 The communication model that the Binder framework implements is client-server and is synchronous as stated previously.  A proxy that lives on the client side is used to communicate, this would be the Context shown above. The request that come into a server are worked on as a thread pool exists in the server side [3].  In the example from [3],  “process A is the client and holds the proxy object (Context) which implements the communication with the Binder kernel driver.  Process B is the server process, with multiple Binder threads.  The Binder framework will spawn new threads to handle all incoming requests, until a defined maximum count of threads is reached.  The proxy objects are talking to the Binder driver, that will deliver the message to the destined object.” [3].  
 
@@ -145,20 +106,12 @@ The Java layer that sits on top of the Android middle layer if a framework that 
 
 This layer of the Binder framework wraps the middleware layer so that the Android applications can utilize Binder communication and allows intents to use the Binder framework [3].  
 
-Here is an outline from [3] showing this:
-
-
-![alt text](http://feb.imghost.us/EP4d.png)
-
-
 According to [3], the Java API layer “relies on the Binder middleware.  To use the C++ written
 middleware from Java, the JNI must be used.  In the source code frameworks/base/core/jni/android_util_Binder.cpp, the mapping between Java and C++ is realized.”  JNI stands for Java Natve Interface and is a programming framework to allow Java cde in a JVM to call and be called by native applications and libraries that are written in other languages [4]
 
 
 
-
-
-####References (Application Software Stack & Application Components):
+#### References (Application Software Stack & Application Components):
 1. Abelson, W. F., et al. (2011). "Android in action."
 2. Agüero, J., et al. (2009). Does Android Dream with Intelligent Agents? International Symposium  on Distributed Computing and Artificial Intelligence 2008 (DCAI 2008), Springer.
 3. Armando, A., et al. (2012). Would you mind forking this process? A denial of service attack on Android (and some countermeasures). Information Security and Privacy Research, Springer: 13-24.
@@ -171,13 +124,13 @@ middleware from Java, the JNI must be used.  In the source code frameworks/base/
 10. Project, A. O. S. (2013). "The AndroidManifest.xml File." Android Developers. Retrieved July 25, 2013.
 11. Shin, W., et al. (2010). A formal model to analyze the permission authorization and enforcement in the Android framework. Social Computing (SocialCom), 2010 IEEE Second International Conference on, IEEE.
 
-####References (Binders):
+#### References (Binders):
 1. http://0xlab.org/~jserv/android-binder-ipc.pdf
 2. https://lkml.org/lkml/2009/6/25/3
 3. https://www.nds.rub.de/media/attachments/files/2011/10/main.pdf 
 4. http://en.wikipedia.org/wiki/Java_Native_Interface 
 
-####References (Booting):
+#### References (Booting):
 1. http://www.androidenea.com/2009/06/android-boot-process-from-power-on.html
 2. https://sites.google.com/site/tomsgt123/adb-fastboot/understanding-android 
 3. http://stackoverflow.com/questions/9153166/understanding-android-zygote-and-dalvikvm 
